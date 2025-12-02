@@ -1,134 +1,925 @@
-% --- UNIVERSAL PREAMBLE BLOCK ---
 \documentclass[11pt, a4paper]{article}
+
+% --- 1. 页面与中文支持 ---
 \usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage[UTF8]{ctex} % 中文支持
 
-% 替换 fontspec 和 babel 配置为 pdfLaTeX 兼容的版本
-\usepackage[UTF8]{ctex}  % 中文支持
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-
-% 列表优化
-\usepackage{enumitem}
-\setlist[itemize]{label=-}
-
-% --- 其他必要宏包 ---
-\usepackage{graphicx}       % 图片插入
-\usepackage{float}          % 图片浮动位置控制
-\usepackage{booktabs}       % 三线表
-\usepackage{subcaption}     % 子图排版 (用于横向对比不同算法)
-\usepackage{hyperref}       % 超链接
+% --- 2. 功能宏包 ---
+% [修正1] 去掉了 [draft] 选项，否则图片只会显示为空白框
+\usepackage[draft]{graphicx}       
+\usepackage{float}          % 强制图片位置 [H]
+\usepackage{booktabs}       % 专业三线表
+\usepackage{subcaption}     % 子图支持
+\usepackage{enumitem}       % 列表格式定制
 \usepackage{listings}       % 代码块支持
 \usepackage{xcolor}         % 颜色支持
+\usepackage{hyperref}       % 超链接
+\usepackage{titlesec}
+\usepackage{tocloft} % 控制目录格式
 
-% 代码块样式设置
+% --- 3. 样式详细设置 ---
+\setlist[itemize]{label=-}
+% 让页面底部不强行对齐，减少因浮动造成的空白页
+\raggedbottom
+% 缩小图与正文的间距
+\setlength{\textfloatsep}{10pt}
+\setlength{\intextsep}{10pt}
+
+% 代码块设置
 \definecolor{codegray}{rgb}{0.95,0.95,0.95}
+\definecolor{keywordcolor}{rgb}{0.0, 0.0, 0.7}
+\definecolor{commentcolor}{rgb}{0.0, 0.5, 0.0}
+
 \lstset{
     backgroundcolor=\color{codegray},
     basicstyle=\ttfamily\small,
     breaklines=true,
     frame=single,
-    columns=flexible
+    columns=flexible,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{keywordcolor},
+    commentstyle=\color{commentcolor},
+    stringstyle=\color{purple},
+    showstringspaces=false,
+    extendedchars=false, 
+    language=Python      
 }
 
-% --- 文档信息 ---
-\title{\textbf{计算机图像研讨课：图像分割算法对比分析报告}}
-\author{姓名：\underline{\hspace{3cm}} \quad 学号：\underline{\hspace{3cm}}}
-\date{\today}
+% [修正2] 注释掉了 graphicspath，改用显式路径以避免同名文件冲突
+% \graphicspath{{./dataset/}{./Ncutresults/}{./cityscapes_result/}{./voc_results/}{./SAMresults-vit_b/}{./SAMresults-vit_h/}}
+
+% 定义四级标题 subsubsubsection
+\titleclass{\subsubsubsection}{straight}[\subsubsection]
+\newcounter{subsubsubsection}[subsubsection]
+\renewcommand\thesubsubsubsection{\thesubsubsection.\arabic{subsubsubsection}}
+\titleformat{\subsubsubsection}[runin]
+  {\normalfont\normalsize\bfseries}{\thesubsubsubsection}{1em}{}
+\titlespacing*{\subsubsubsection}
+  {0pt}{3.25ex plus 1ex minus .2ex}{1em}
+
+% 设置目录深度为4级
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3} % 设置章节编号深度为4级
+
+% 自定义目录项格式，支持四级标题
+\makeatletter
+\newcommand*\l@subsubsubsection{\@dottedtocline{4}{7em}{4em}}
+\makeatother
 
 \begin{document}
 
-\maketitle
+% --- 封面页 ---
+\begin{titlepage}
+    \centering
+    \vspace*{3cm}
+    {\Huge \textbf{图像处理与计算机视觉研讨课：\\第一次作业} \par}
+    \vspace{4cm}
+    {\Large \textbf{姓名：} \underline{\makebox[5cm]{张宗桪}} \par}
+    \vspace{1cm}
+    {\Large \textbf{学号：} \underline{\makebox[5cm]{2023K8009991013}} \par}
+    \vfill
+    {\large \today \par}
+    \vspace{2cm}
+\end{titlepage}
 
-\begin{abstract}
-本报告旨在对比分析传统图像分割算法与基于深度学习的分割模型在不同场景下的表现。实验选取了传统的归一化图割 (Normalized Cuts)、经典的语义分割模型 DeepLab v3+ 以及最新的基础模型 SAM (Segment Anything Model)。通过在公开数据集及自采特殊场景（如鱼眼、全景）数据上的测试，重点分析了不同算法在边缘贴合度、语义理解能力及抗畸变鲁棒性上的差异。此外，报告还探讨了 SAM 采用不同规模预训练模型（ViT-B/L/H）时的性能权衡。
-\end{abstract}
-
+% --- 目录页 ---
+\newpage
 \tableofcontents
 \newpage
 
-\section{引言 (Introduction)}
-图像分割是计算机视觉的基础任务之一，旨在将图像划分为具有不同属性的区域。本实验跨越了计算机视觉发展的三个重要阶段，对比了三种代表性算法：
+% --- 正文开始 ---
 
-\begin{itemize}
-    \item \textbf{Normalized Cuts (NCuts)}: 代表了传统的\textbf{基于图论的无监督方法}。它将图像分割视为图划分问题，通过求解广义特征值问题来最小化切分代价并最大化类内相似度。该方法不需要训练数据，但计算复杂度高，且缺乏高层语义理解。
-    
-    \item \textbf{DeepLab v3+}: 代表了\textbf{深度监督学习时代}的巅峰。它采用了空洞空间金字塔池化 (ASPP) 模块来捕获多尺度上下文信息，并使用编解码器结构恢复物体边界。作为语义分割模型，它强依赖于训练数据的类别分布。
-    
-    \item \textbf{Segment Anything Model (SAM)}: 代表了\textbf{基础模型 (Foundation Model) 时代}。SAM 基于 Transformer 架构 (ViT)，在 1100 万张图像和 10 亿个掩码的大规模数据集 (SA-1B) 上进行了预训练。它引入了提示 (Prompt) 机制，具备强大的零样本 (Zero-shot) 泛化能力。
-\end{itemize}
+\section{环境配置 (Environment Setup)}
 
-\section{实验环境配置 (Setup)}
+\subsection{SAM 模型配置}
+SAM 的配置主要包括安装官方库以及下载不同规模的预训练权重（ViT-B 和 ViT-H）。
 
-\subsection{SAM 环境配置}
-实验基于 PyTorch 框架，硬件环境为 NVIDIA GPU (如可用)。SAM 的配置过程如下：
-\begin{lstlisting}[language=bash]
-# 安装 segment-anything 库
+\begin{lstlisting}[language=bash, caption={SAM 环境安装与权重下载}]
+# 1. 安装 segment-anything 库
 pip install git+https://github.com/facebookresearch/segment-anything.git
 
-# 下载预训练权重 (本实验主要对比 vit_b 和 vit_h)
+# 2. 下载预训练权重文件
 wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
 wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth
 \end{lstlisting}
 
-\subsection{对比模型设置}
+\begin{lstlisting}[language=Python, caption={SAM 模型加载代码示例}]
+from segment_anything import sam_model_registry, SamPredictor
+
+sam_checkpoint_h = "sam_vit_h_4b8939.pth"
+model_type_h = "vit_h"
+sam_h = sam_model_registry[model_type_h](checkpoint=sam_checkpoint_h)
+
+sam_checkpoint_b = "sam_vit_b_01ec64.pth"
+model_type_b = "vit_b"
+sam_b = sam_model_registry[model_type_b](checkpoint=sam_checkpoint_b)
+\end{lstlisting}
+
+\subsection{DeepLab v3+ 模型使用}
+下载Deeplab v3+ 在 Cityscapes 和 Pascal VOC 数据集上的预训练权重，并使用以下命令进行测试。
+
+\begin{lstlisting}[language=Python, caption={DeepLab v3+ 模型测试脚本}]
+# 使用 cityscapes
+python predict.py --input dataset/4.jpg \
+            --dataset cityscapes \
+            --model deeplabv3plus_mobilenet \
+            --ckpt checkpoints/best_deeplabv3plus_mobilenet_cityscapes_os16.pth \
+            --save_val_results_to cityscapes_result
+
+# 使用 pascal voc
+python predict.py --input dataset/5.jpg \
+            --dataset voc \
+            --model deeplabv3plus_mobilenet \
+            --ckpt checkpoints/best_deeplabv3plus_mobilenet_voc_os16.pth \
+            --save_val_results_to voc_results
+\end{lstlisting}
+
+\subsection{归一化图割}
+具体实现基于 \texttt{scikit-image} 库。
+
+\begin{lstlisting}[language=Python, caption={基于 SLIC 超像素的归一化图割实现代码}]
+from skimage import segmentation, color, graph
+import cv2
+import os
+
+profile_dir = './dataset'
+os.makedirs("./Ncutresults", exist_ok=True)
+
+for file in os.listdir(profile_dir):
+    image = cv2.imread(os.path.join(profile_dir, file))
+    img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    labels1 = segmentation.slic(img, compactness=30, n_segments=200, start_label=1)
+    g = graph.rag_mean_color(img, labels1, mode='similarity')
+    labels2 = graph.cut_normalized(labels1, g)
+    out2 = color.label2rgb(labels2, img, kind='avg', bg_label=0)
+    out2_bgr = cv2.cvtColor((out2 * 255).astype('uint8'), cv2.COLOR_RGB2BGR)
+    cv2.imwrite(os.path.join("./Ncutresults", f"ncut_{file}"), out2_bgr)
+\end{lstlisting}
+
+\newpage
+\section{实验结果展示 (Results)}
+本章节展示归一化图割、DeepLab v3+ 以及 SAM 在公开数据集和自采数据集上的分割效果。
+
+% --- 下面使用了显式路径 (Explicit Paths) 解决同名文件冲突 ---
+
+\subsection{公开数据集测试结果}
+
+% --- 测试用例 1 ---
+\begin{figure}[htbp]
+    \centering
+    % 原图
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{dataset/1.jpg} 
+        \caption{原图 (Original)}
+    \end{subfigure}
+    \hfill
+    % Ncut
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_1.jpg}
+        \caption{Normalized Cuts}
+    \end{subfigure}
+    \hfill
+    % Cityscapes
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{cityscapes_result/1_semantic.png}
+        \caption{DeepLab (Cityscapes)}
+    \end{subfigure}
+    
+    \vspace{1em}
+    
+    % VOC (明确指定文件夹)
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/1semantic.png}
+        \caption{DeepLab (Pascal VOC)}
+    \end{subfigure}
+    \hfill
+    % SAM ViT-B (带下划线 sam_1)
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_1.png}
+        \caption{SAM (ViT-B)}
+    \end{subfigure}
+    \hfill
+    % SAM ViT-H (注意：根据截图这里似乎没有下划线 sam1)
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam1.png}
+        \caption{SAM (ViT-H)}
+    \end{subfigure}
+    
+    \caption{公开数据集测试用例 1}
+    \label{fig:public_case1}
+\end{figure}
+
+% --- 测试用例 2 ---
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{dataset/2.jpg}
+        \caption{原图 (Original)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_2.jpg}
+        \caption{Normalized Cuts}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{cityscapes_result/2_semantic.png}
+        \caption{DeepLab (Cityscapes)}
+    \end{subfigure}
+    
+    \vspace{1em}
+    
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/2semantic.png}
+        \caption{DeepLab (Pascal VOC)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_2.png}
+        \caption{SAM (ViT-B)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam2.png}
+        \caption{SAM (ViT-H)}
+    \end{subfigure}
+    
+    \caption{公开数据集测试用例 2}
+    \label{fig:public_case2}
+\end{figure}
+
+% --- 测试用例 3 ---
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{dataset/3.jpg}
+        \caption{原图 (Original)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_3.jpg}
+        \caption{Normalized Cuts}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{cityscapes_result/3_semantic.png}
+        \caption{DeepLab (Cityscapes)}
+    \end{subfigure}
+    
+    \vspace{1em}
+    
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/3semantic.png}
+        \caption{DeepLab (Pascal VOC)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_3.png}
+        \caption{SAM (ViT-B)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam3.png}
+        \caption{SAM (ViT-H)}
+    \end{subfigure}
+    
+    \caption{公开数据集测试用例 3}
+    \label{fig:public_case3}
+\end{figure}
+
+% --- 测试用例 4 ---
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{dataset/4.jpg}
+        \caption{原图 (Original)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_4.jpg}
+        \caption{Normalized Cuts}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{cityscapes_result/4_semantic.png}
+        \caption{DeepLab (Cityscapes)}
+    \end{subfigure}
+    
+    \vspace{1em}
+    
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/4semantic.png}
+        \caption{DeepLab (Pascal VOC)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_4.png}
+        \caption{SAM (ViT-B)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam4.png}
+        \caption{SAM (ViT-H)}
+    \end{subfigure}
+    
+    \caption{公开数据集测试用例 4}
+    \label{fig:public_case4}
+\end{figure}
+
+\subsection{自采数据集测试结果}
+
+% --- 测试用例 5 ---
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{dataset/5.jpg}
+        \caption{原图 (Original)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_5.jpg}
+        \caption{Normalized Cuts}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{cityscapes_result/5_semantic.png}
+        \caption{DeepLab (Cityscapes)}
+    \end{subfigure}
+    
+    \vspace{1em}
+    
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/5semantic.png}
+        \caption{DeepLab (Pascal VOC)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_5.png}
+        \caption{SAM (ViT-B)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam5.png}
+        \caption{SAM (ViT-H)}
+    \end{subfigure}
+    
+    \caption{自采数据集测试用例 1}
+    \label{fig:self_case1}
+\end{figure}
+
+% --- 测试用例 6 ---
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{dataset/6.jpg}
+        \caption{原图 (Original)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_6.jpg}
+        \caption{Normalized Cuts}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{cityscapes_result/6_semantic.png}
+        \caption{DeepLab (Cityscapes)}
+    \end{subfigure}
+    
+    \vspace{1em}
+    
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/6semantic.png}
+        \caption{DeepLab (Pascal VOC)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_6.png}
+        \caption{SAM (ViT-B)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam6.png}
+        \caption{SAM (ViT-H)}
+    \end{subfigure}
+    
+    \caption{自采数据集测试用例 2}
+    \label{fig:self_case2}
+\end{figure}
+
+% --- 测试用例 7 ---
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{dataset/7.jpg}
+        \caption{原图 (Original)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_7.jpg}
+        \caption{Normalized Cuts}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{cityscapes_result/7_semantic.png}
+        \caption{DeepLab (Cityscapes)}
+    \end{subfigure}
+    
+    \vspace{1em}
+    
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/7semantic.png}
+        \caption{DeepLab (Pascal VOC)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_7.png}
+        \caption{SAM (ViT-B)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam7.png}
+        \caption{SAM (ViT-H)}
+    \end{subfigure}
+    
+    \caption{自采数据集测试用例 3}
+    \label{fig:self_case3}
+\end{figure}
+
+% --- 测试用例 8 ---
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{dataset/8.jpg}
+        \caption{原图 (Original)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_8.jpg}
+        \caption{Normalized Cuts}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{cityscapes_result/8_semantic.png}
+        \caption{DeepLab (Cityscapes)}
+    \end{subfigure}
+    
+    \vspace{1em}
+    
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/8semantic.png}
+        \caption{DeepLab (Pascal VOC)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_8.png}
+        \caption{SAM (ViT-B)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam8.png}
+        \caption{SAM (ViT-H)}
+    \end{subfigure}
+    
+    \caption{自采数据集测试用例 4}
+    \label{fig:self_case4}
+\end{figure}
+
+\section{同类分析}
+在这一部分，我们将对比DeepLab v3+ 与 SAM 在采用不同预训练模型时的表现。
+\subsection{SAM模型}
+
+SAM 是 Meta AI 提出的 Segment Anything Model (SAM) 作为图像分割的基础框架。SAM 旨在解决通用的图像分割任务，具有强大的零样本迁移能力，能够处理训练集中未见过的物体类别。
+
+SAM 的网络架构由三个主要部分组成，设计上实现了高效的推理：
 \begin{itemize}
-    \item \textbf{Normalized Cuts}: 使用 \texttt{scikit-image} 库中的 \texttt{slic} 或 \texttt{cut\_normalized} 实现。为防止内存溢出，输入图像均调整至 $512 \times 512$ 分辨率以下。聚类数 $K$ 根据图像内容手动调整 (通常设为 5-10)。
-    \item \textbf{DeepLab v3+}: 调用 \texttt{torchvision.models.segmentation} 中的预训练模型，Backbone 选用 ResNet-101，预训练权重基于 COCO 数据集。
+    \item \textbf{图像编码器 (Image Encoder)：} 基于 Vision Transformer (ViT) 架构，负责将输入图像映射为特征嵌入（Image Embeddings）。这是模型中计算量最大的部分，但对每张图像仅需计算一次。
+    \item \textbf{提示编码器 (Prompt Encoder)：} 这是一个轻量级模块，用于将用户的交互提示（如点、框、掩码或文本）转换为提示向量。
+    \item \textbf{掩码解码器 (Mask Decoder)：} 该模块将图像特征与提示特征相结合，通过轻量级的计算实时生成最终的分割掩码。
 \end{itemize}
 
-\section{实验结果与对比分析 (Experiments)}
+\subsubsection{权重文件对比：ViT-B 与 ViT-H}
+SAM 的不同模型版本主要区别在于图像编码器的大小。本研究使用了官方提供的两个具有代表性的权重文件进行对比实验：\textbf{ViT-B (Base)} 和 \textbf{ViT-H (Huge)}。
 
-\subsection{公开数据集测试表现}
-我们选取了 COCO/VOC 数据集中的典型样本（包含人像、复杂背景物体）进行测试。
+\begin{itemize}
+    \item \textbf{ViT-B (Base)：} 这是一个基础版本的模型权重。它的参数量相对较小，推理速度快，内存占用低。在资源受限或对实时性要求较高的场景中，ViT-B 通常是首选。
+    \item \textbf{ViT-H (Huge)：} 这是 SAM 系列中规模最大、性能最强的版本。它拥有巨大的参数量，能够提取更丰富的图像特征。虽然其计算成本显著增加，但在处理复杂场景、模糊边界以及细小物体时，ViT-H 通常能提供更精细的分割质量。
+\end{itemize}
+\subsubsection{实验结果与分析}
 
-\textbf{1. 语义一致性与纹理鲁棒性：}
-实验结果显示，\textbf{DeepLab v3+} 在处理常见物体（如行人、汽车）时表现出极好的语义一致性，能够准确地将整个物体归为一类。相比之下，\textbf{Normalized Cuts} 容易受到物体内部纹理的影响。例如，在分割穿着格纹衬衫的行人时，NCuts 倾向于根据颜色差异将衬衫分割成多个碎片（过分割），因为它无法理解“人”这一高层语义概念。
+为了评估模型容量对分割性能的具体影响，我们在室内复杂背景、多人物实例以及自然景观三种典型场景下，对比了 ViT-B (Base) 与 ViT-H (Huge) 两个不同量级权重的表现。实验采取仅显示最大的5个掩码作为输出。
 
-\textbf{2. 边缘贴合度：}
-\textbf{SAM} 在边缘处理上展现了压倒性的优势。在毛发、树叶等复杂边缘区域，DeepLab v3+ 的分割掩码往往显得较为平滑且模糊（受限于卷积神经网络的下采样操作），而 SAM 能够生成像素级精度的锐利边缘，这得益于其基于 Point/Box 提示的精细化解码机制。
+\subsubsubsection{前景主体与背景识别}
 
-% [此处建议插入对比图：展示 NCuts 的过分割现象 vs SAM 的精细边缘]
 
-\subsection{自采数据与极端场景测试}
-本节重点分析模型在非标准成像条件下的表现，包括**鱼眼镜头（强畸变）**和**全景拼接图（大视场）**。
-
-\textbf{1. 几何畸变的适应性：}
-在鱼眼镜头拍摄的建筑物测试中，DeepLab v3+ 的表现显著下降。由于其预训练数据多为正常透视图像，卷积核无法有效适应鱼眼带来的径向畸变，导致位于图像边缘的直线物体被错误分割或直接漏检。
-
-相反，\textbf{SAM} 表现出了惊人的几何泛化能力。即便在图像边缘发生严重拉伸变形的情况下，SAM 依然能够准确识别并分割出物体的轮廓。这可能归功于 ViT 架构对全局位置信息的编码能力，以及其训练数据集中可能包含的多样化视角。
-
-\textbf{2. 未知类别的零样本分割：}
-在拍摄实验室特有设备（如示波器、显微镜，这些类别可能不在 COCO 常见类别中）时，DeepLab v3+ 倾向于将其归类为背景或错误的相似物体。而 SAM 在接收到简单的点提示（Point Prompt）后，能够立刻分离出该物体。这证明了 SAM 学习到的是“什么是物体”这一通用概念，而非特定的类别标签。
-
-% [此处建议插入对比图：展示 DeepLab 在鱼眼图边缘的失效 vs SAM 的成功分割]
-
-\section{深入讨论 (Discussion)}
-
-\subsection{不同预训练模型的影响 (SAM ViT-B vs ViT-H)}
-我们对比了 SAM 的轻量级模型 (ViT-B, Base) 和巨型模型 (ViT-H, Huge) 的表现。
-
-\begin{table}[H]
+\begin{figure}[H]
     \centering
-    \caption{SAM 不同模型性能权衡分析}
-    \begin{tabular}{lccc}
-        \toprule
-        模型版本 & 参数量 & 推理速度 (单张 1080P) & 观察到的主要差异 \\
-        \midrule
-        ViT-B (Base) & 91M & $\sim$0.5s (Fast) & 整体轮廓准确，但在极细微结构（如自行车辐条）上会发生粘连。 \\
-        ViT-H (Huge) & 636M & $\sim$3.0s (Slow) & 边缘极其锐利，能有效分割低对比度下的阴影区域。 \\
-        \bottomrule
-    \end{tabular}
-    \label{tab:sam_variants}
-\end{table}
+    % 左列：ViT-B 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请在此处替换为【sam_3】的图片路径
+        \includegraphics[width=\textwidth]{SAMresults-vit_b/sam_3.png}
+        \caption{ViT-B 分割结果}
+        \label{fig:cat_vitb}
+    \end{subfigure}
+    \hfill
+    % 右列：ViT-H 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请在此处替换为【sam3】的图片路径
+        \includegraphics[width=\textwidth]{SAMresults-vit_h/sam3.png}
+        \caption{ViT-H 分割结果}
+        \label{fig:cat_vith}
+    \end{subfigure}
+    \caption{室内场景对比}
+    \label{fig:cat_comparison}
+\end{figure}
 
-\textbf{分析：} 虽然 ViT-H 在视觉效果上更胜一筹，但在实际工程应用（如移动端部署）中，ViT-B 提供了更好的性价比。对于大多数非科研用途，ViT-B 的精度已经远超传统的分割算法。
+如图~\ref{fig:cat_comparison} 所示，两者表现差异巨大。\textbf{ViT-B} (图a) 显然受到了背景中高对比度图案的干扰，其“Top 5”分割结果主要集中在画面两侧的彩色条纹（紫色、绿色、红色块），而作为画面的真正主体——猫，却几乎融入背景。相比之下，\textbf{ViT-H} (图b) 展现了较好的语义聚焦能力，它成功抑制了背景噪声的干扰，将画面中央的猫识别为最显著的单一对象（亮紫色区域），且轮廓完整清晰。
 
-\subsection{算法的局限性反思}
-尽管 SAM 表现优异，但在实验中也发现其局限性：它缺乏“语义标签”。SAM 只能告诉我们“这里有一个物体”，但无法告诉我们“这是什么”。相比之下，DeepLab v3+ 虽然分割精度略逊，但能直接输出类别信息。因此，未来的趋势可能是结合两者的优势：利用 SAM 生成高质量 Mask，再利用 CLIP 等模型进行零样本分类。
+\subsubsubsection{人物实例}
 
-\section{结论 (Conclusion)}
-本实验通过对比 Normalized Cuts、DeepLab v3+ 和 SAM，清晰地展示了图像分割技术从“底层特征聚类”到“特定领域监督学习”，再到“通用基础模型”的演变路径。
+\begin{figure}[H]
+    \centering
+    % 左列：ViT-B 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请在此处替换为【sam_5】的图片路径
+        \includegraphics[width=\textwidth]{SAMresults-vit_b/sam_5.png}
+        \caption{ViT-B 分割结果}
+        \label{fig:people_vitb}
+    \end{subfigure}
+    \hfill
+    % 右列：ViT-H 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请在此处替换为【sam5】的图片路径
+        \includegraphics[width=\textwidth]{SAMresults-vit_h/sam5.png}
+        \caption{ViT-H 分割结果}
+        \label{fig:people_vith}
+    \end{subfigure}
+    \caption{人物实例分割对比}
+    \label{fig:people_comparison}
+\end{figure}
 
-实验结果表明，SAM 在泛化能力和边缘精度上具有代际优势，特别是对于自采的畸变图像（鱼眼/全景），其零样本能力展现了极高的鲁棒性。然而，传统的 DeepLab v3+ 在特定类别的语义识别上仍有其不可替代的作用。对于未来的分割任务，通过 Prompt 引导的大模型方案将成为主流。
+对比图~\ref{fig:people_comparison} 可以看出，\textbf{ViT-B} 在语义理解上存在碎片化问题。它未能理解肢体与躯干的从属关系，错误地将左侧球员举起的手臂丢失，并将右侧球员分割为上下两部分。而 \textbf{ViT-H} 表现出极强的语义连通性，准确地将头部、躯干和四肢识别为同一个实例，证明了其具备更深层的语义理解能力，而非简单的颜色聚类。
+
+\subsubsubsection{自然景观}
+
+\begin{figure}[H]
+    \centering
+    % 左列：ViT-B 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请在此处替换为【sam_7】的图片路径
+        \includegraphics[width=\textwidth]{SAMresults-vit_b/sam_7.png}
+        \caption{ViT-B 分割结果}
+        \label{fig:park_vitb}
+    \end{subfigure}
+    \hfill
+    % 右列：ViT-H 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请在此处替换为【sam6】的图片路径
+        \includegraphics[width=\textwidth]{SAMresults-vit_h/sam6.png}
+        \caption{ViT-H 分割结果}
+        \label{fig:park_vith}
+    \end{subfigure}
+    \caption{自然景观分割对比}
+    \label{fig:park_comparison}
+\end{figure}
+
+如图~\ref{fig:park_comparison} 所示，\textbf{ViT-B} 生成的掩码显得杂乱且缺乏明确语义，仅覆盖了草坪的局部碎片。相反，\textbf{ViT-H} 能够结合全局上下文信息，生成了覆盖整块左侧草坪的完整掩码，且掩码边缘沿着硬质路面切分得非常整齐。这说明 ViT-H 在处理低纹理区域时具有更好的鲁棒性和区域一致性。
+
+\subsubsection{结论}
+综合上述实验，从 ViT-B 升级至 ViT-H 带来了显著的性能提升。具体表现在：
+\begin{enumerate}
+    \item \textbf{抗干扰能力：} ViT-H 能有效区分前景主体与背景高频噪声（如实验一中的猫与背景条纹）。
+    \item \textbf{语义完整性：} ViT-H 能更好地理解物体的结构，避免将同一物体分割破碎（如实验二中的人物）。
+    \item \textbf{区域一致性：} 在低纹理区域，ViT-H 能生成更符合人类认知的完整掩码（如实验三中的草地）。
+\end{enumerate}
+
+\subsection{DeepLabV3+ 模型}
+DeepLabV3+ 是由 Google 团队提出的经典语义分割网络。
+
+DeepLabV3+ 的核心架构包含两个关键特性：
+\begin{itemize}
+    \item \textbf{空洞空间金字塔池化 ：} 通过不同采样率的空洞卷积捕捉多尺度的上下文信息，显著提升了模型对不同大小物体的识别能力。
+    \item \textbf{编解码器结构 ：} 引入了简单的解码器模块。编码器提取丰富的高层语义特征，而解码器通过上采样并将低层细节特征与高层语义特征融合，有效地恢复了物体的空间分辨率和边界细节。
+\end{itemize}
+
+这种设计使得 DeepLabV3+ 在保持较高分割精度的同时，能够生成边缘更加锐利的分割结果。
+
+\subsubsection{权重文件对比：Pascal VOC 与 Cityscapes}
+本实验对比了分别在 Pascal VOC 和 Cityscapes 数据集上训练的两个权重文件，它们决定了模型能够识别的语义类别。
+
+\begin{itemize}
+    \item \textbf{Pascal VOC 权重：} 该权重在 PASCAL VOC 2012 数据集上训练。它侧重于\textbf{通用物体分割}，包含 20 个前景类别（如人、猫、狗、椅子、飞机、汽车等）和 1 个背景类。该模型适合处理生活中常见的独立物体，注重物体层面的实例区分。
+    \item \textbf{Cityscapes 权重：} 该权重在 Cityscapes 数据集上训练。它专注于\textbf{城市自动驾驶场景}，包含 19 个语义类别（如道路、人行道、建筑、墙、交通标志、车辆、行人等）。该模型不仅关注前景物体，还关注背景环境（如天空、地面）的语义解析，适合处理复杂的街景图像。
+\end{itemize}
+
+\subsubsection{实验结果与分析}
+
+不同于 SAM 模型中模型容量带来的差异，DeepLabV3+ 的对比实验主要揭示了预训练数据集（Pascal VOC 与 Cityscapes）对模型语义认知范围的影响。
+
+\subsubsubsection{城市街景场景解析}
+
+\begin{figure}[H]
+    \centering
+    % 左列：Pascal VOC 结果 (不带下划线)
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请替换为 4semantic.png
+        \includegraphics[width=\textwidth]{voc_results/4semantic.png}
+        \caption{Pascal VOC 权重结果}
+        \label{fig:street_voc}
+    \end{subfigure}
+    \hfill
+    % 右列：Cityscapes 结果 (带下划线)
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请替换为 4_semantic.png
+        \includegraphics[width=\textwidth]{cityscapes_result/4_semantic.png}
+        \caption{Cityscapes 权重结果}
+        \label{fig:street_city}
+    \end{subfigure}
+    \caption{街景分割对比}
+    \label{fig:deeplab_street}
+\end{figure}
+
+如图~\ref{fig:deeplab_street} 所示，两者差异显著。\textbf{Pascal VOC 权重} (图a) 表现为稀疏的物体检测，仅将画面中的车辆识别为前景（灰色区域），而将道路、树木和天空均视为背景（黑色）。这是因为 VOC 数据集主要针对特定物体类别的实例分割。相反，\textbf{Cityscapes 权重} (图b) 展现了密集的语义分割能力，正确将像素分类为道路（紫色）、植被（绿色）、天空（蓝色）和车辆（深蓝色），提供了完整的环境语义信息。
+
+\subsubsubsection{室内物体泛化能力}
+
+\begin{figure}[H]
+    \centering
+    % 左列：Pascal VOC 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请替换为 1semantic.png
+        \includegraphics[width=\textwidth]{voc_results/1semantic.png}
+        \caption{Pascal VOC 权重结果}
+        \label{fig:flower_voc}
+    \end{subfigure}
+    \hfill
+    % 右列：Cityscapes 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请替换为 1_semantic.png
+        \includegraphics[width=\textwidth]{cityscapes_result/1_semantic.png}
+        \caption{Cityscapes 权重结果}
+        \label{fig:flower_city}
+    \end{subfigure}
+    \caption{通用物体识别对比}
+    \label{fig:deeplab_flower}
+\end{figure}
+
+图~\ref{fig:deeplab_flower} 展示了严重的领域偏移现象。\textbf{Pascal VOC 权重} (图a) 准确地将花卉识别为“盆栽/植物”类别（绿色掩码），覆盖完整。然而，\textbf{Cityscapes 权重} (图b) 产生了严重的“幻觉”，将花卉错误地强制分类为各种杂乱的街景类别碎片。
+
+\subsubsubsection{自然景观}
+
+\begin{figure}[H]
+    \centering
+    % 左列：Pascal VOC 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请替换为 6semantic.png
+        \includegraphics[width=\textwidth]{voc_results/6semantic.png}
+        \caption{Pascal VOC 权重结果}
+        \label{fig:park_voc}
+    \end{subfigure}
+    \hfill
+    % 右列：Cityscapes 结果
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        % TODO: 请替换为 6_semantic.png
+        \includegraphics[width=\textwidth]{cityscapes_result/6_semantic.png}
+        \caption{Cityscapes 权重结果}
+        \label{fig:park_city}
+    \end{subfigure}
+    \caption{环境背景分割}
+    \label{fig:deeplab_park}
+\end{figure}
+
+在图~\ref{fig:deeplab_park} 中，\textbf{Pascal VOC 权重} (图a) 几乎输出全黑结果，因为它不包含“草地”、“路面”或“天空”等背景类别，只能忽略。而 \textbf{Cityscapes 权重} (图b) 凭借对室外场景的先验知识，清晰地分割出了草地（亮绿色）、远山与树木（深绿色），以及天空（蓝色）。
+
+\subsubsection{结论}
+对于 DeepLabV3+ 而言，权重的选择应严格取决于应用场景：
+\begin{enumerate}
+    \item 若任务涉及\textbf{通用物体检测}（如机器人抓取、相册分类），应选择涵盖 20 类常见物体的 \textbf{Pascal VOC} 权重。
+    \item 若任务涉及\textbf{自动驾驶或环境感知}，需要理解道路布局和背景，则必须使用 \textbf{Cityscapes} 权重。
+\end{enumerate}
+模型无法识别其训练数据分布之外的语义类别，盲目跨域使用会导致严重的漏检或误识别。
+
+\section{不同模型对比分析}
+本章节将归纳总结归一化图割、DeepLab v3+ 以及 SAM 三种图像分割方法在不同应用场景下的优缺点。
+\subsection{Normalized Cut (N-Cut) 算法}
+
+\subsubsection{算法原理}
+N-Cut 算法将图像分割问题建模为图的划分问题。给定一幅图像，将其表示为加权无向图 $G=(V, E)$，其中 $V$ 代表图像中的像素集合，$E$ 代表连接像素的边。每条边的权重 $w_{ij}$ 反映了节点 $i$ 与节点 $j$ 之间的相似度（通常基于颜色相似性和空间距离计算）。
+
+传统的最小割（Min-Cut）算法旨在找到一种划分方式，使得被切断的边的权重之和最小。然而，Min-Cut 倾向于分割出孤立的节点。为了解决这一偏置，N-Cut 引入了归一化项，将分割成本与子图的总体积相关联。其目标函数定义为：
+
+\begin{equation}
+    Ncut(A, B) = \frac{cut(A, B)}{assoc(A, V)} + \frac{cut(A, B)}{assoc(B, V)}
+\end{equation}
+
+其中：
+\begin{itemize}
+    \item $A$ 和 $B$ 是图 $V$ 被分割成的两个互不相交的子集（即 $A \cup B = V, A \cap B = \emptyset$）。
+    \item $cut(A, B) = \sum_{i \in A, j \in B} w_{ij}$ 是两个子集之间被切断的边的权重总和。
+    \item $assoc(A, V) = \sum_{i \in A, t \in V} w_{it}$ 是子集 $A$ 中所有节点与图中所有节点的连接权重总和（即子集 $A$ 的总体积）。
+\end{itemize}
+
+\subsubsection{优化与求解}
+最小化 $Ncut(A, B)$ 是一个 NP-hard 问题。然而，Shi 和 Malik 证明了该问题可以转化为广义特征值问题（Generalized Eigenvalue Problem）进行近似求解。通过求解拉普拉斯矩阵的特征向量，并将像素映射到特征空间进行聚类，即可得到最优的分割结果。与现代深度学习方法不同，N-Cut 是一种非监督学习方法，不需要任何训练数据，但其计算复杂度随图像分辨率呈平方级增长，因此在处理高分辨率图像时效率较低。
+
+
+\subsection{实验结果分析}
+
+% ======================================================================================
+% 第一组：瓶中花 (1.jpg)
+% ======================================================================================
+\subsubsection{场景一：复杂重叠物体 (瓶中花)}
+
+\begin{figure}[H]
+    \centering
+    % --- Ncut 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_1.jpg}
+        \centerline{\footnotesize (a) Ncut Result}
+    \end{minipage}
+    \hfill
+    % --- Semantic 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/1semantic.png}
+        \centerline{\footnotesize (b) Semantic (DeepLab)}
+    \end{minipage}
+    \hfill
+    % --- SAM 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam1.png}
+        \centerline{\footnotesize (c) SAM (ViT-H)}
+    \end{minipage}
+    \caption{瓶中花场景下的模型结果对比}
+    \label{fig:res_1}
+\end{figure}
+
+\noindent\textbf{1. Ncut (归一化图割) 分析：} \\
+在该场景中，Ncut 表现出典型的\textbf{过分割 (Over-segmentation)} 现象。观察图 (a)，算法深受花瓣内部颜色渐变（深红至浅粉）的影响，将完整的花朵切碎成多个不规则的色块。同时，由于缺乏对物体形状的先验认知，紫色花瓶与上方绿叶的边界处理混乱，无法形成独立的物体区域。
+
+\vspace{0.5em}
+
+\noindent\textbf{2. Semantic (DeepLabV3+) 分析：} \\
+DeepLabV3+ 成功提取了图像的\textbf{高层语义}，将画面中的花束和花瓶整体识别为 PASCAL VOC 类别中的 \texttt{pottedplant}（图 (b) 绿色区域）。然而，其局限性在于丢失了\textbf{实例细节}。由于骨干网的下采样操作，不同花朵之间的界限被模糊，整个花束呈现为一个粗糙的连通区域（Blob），无法区分个体，且边缘细节平滑严重。
+
+\vspace{0.5em}
+
+\noindent\textbf{3. SAM (Segment Anything) 分析：} \\
+SAM 在此场景下展现了卓越的\textbf{实例分割 (Instance Segmentation)} 能力。观察结果 (c)，模型不仅成功将前景与背景分离，更在严重的物体遮挡下，精准地扣取了特定的紫色玫瑰花（紫色 Mask）和花瓶（棕色 Mask）。其边缘贴合度极高，连花瓣的锯齿状边缘都清晰可见，证明了 ViT 架构在处理复杂重叠边缘时的强大感知力。
+
+\vspace{1cm}
+
+% ======================================================================================
+% 第二组：暗光下的猫 (3.jpg)
+% ======================================================================================
+\subsubsection{场景二：低照度与低对比度 (暗光猫)}
+
+\begin{figure}[H]
+    \centering
+    % --- Ncut 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_3.jpg}
+        \centerline{\footnotesize (a) Ncut Result}
+    \end{minipage}
+    \hfill
+    % --- Semantic 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/3semantic.png}
+        \centerline{\footnotesize (b) Semantic (DeepLab)}
+    \end{minipage}
+    \hfill
+    % --- SAM 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam3.png}
+        \centerline{\footnotesize (c) SAM (ViT-H)}
+    \end{minipage}
+    \caption{低照度场景下的模型结果对比}
+    \label{fig:res_3}
+\end{figure}
+
+\noindent\textbf{1. Ncut (归一化图割) 分析：} \\
+在低光照且对比度极低的条件下，Ncut \textbf{几近失效}。由于猫的毛色与背景木地板及阴影极其接近，基于颜色和梯度的聚类无法形成有效的边界。如图 (a) 所示，算法反而被背景中纹理更明显的椅子腿误导（右侧深蓝色块），将背景切碎，而未能提取出主体目标。
+
+\vspace{0.5em}
+
+\noindent\textbf{2. Semantic (DeepLabV3+) 分析：} \\
+DeepLabV3+ 展现了深度学习方法的\textbf{语义鲁棒性}。尽管视觉边界模糊，CNN 依然通过猫的耳朵、眼睛等特征，在语义层面成功识别出了 \texttt{Cat} 类（图 (b) 红色区域）。但是，其分割掩码的边缘非常圆滑，丢失了猫爪、耳尖等形态细节，表现为一种“定位准确但轮廓模糊”的结果。
+
+\vspace{0.5em}
+
+\noindent\textbf{3. SAM (Segment Anything) 分析：} \\
+SAM 的表现最为惊艳。得益于 Transformer 的\textbf{全局注意力机制 (Global Attention)}，模型利用整张图的上下文信息弥补了局部对比度的不足。结果 (c) 显示，SAM 生成的掩码轮廓完美贴合了猫的身体，保留了尖锐的耳尖和独立的尾巴线条。这证明了基础大模型（Foundation Model）在理解物体形态上已经超越了单纯的颜色或梯度依赖。
+
+\vspace{1cm}
+
+% ======================================================================================
+% 第三组：小径与路桩 (7.jpg)
+% ======================================================================================
+\subsubsection{场景三：自然场景}
+
+\begin{figure}[H]
+    \centering
+    % --- Ncut 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Ncutresults/ncut_7.jpg} 
+        \centerline{\footnotesize (a) Ncut Result}
+    \end{minipage}
+    \hfill
+    % --- Semantic 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{voc_results/7semantic.png}
+        \centerline{\footnotesize (b) Semantic (DeepLab)}
+    \end{minipage}
+    \hfill
+    % --- SAM 结果 ---
+    \begin{minipage}{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{SAMresults-vit_h/sam7.png}
+        \centerline{\footnotesize (c) SAM (ViT-H)}
+    \end{minipage}
+    \caption{自然场景对比}
+    \label{fig:res_7}
+\end{figure}
+
+\noindent\textbf{1. Ncut (归一化图割) 分析：} \\
+在自然场景下，Ncut 表现出明显的\textbf{区域块状化}特征。如图 (a) 所示，算法大致将灰色的路面（灰色块）与两侧的草地（紫色块）进行了分离。然而，对于路面上的小物体（猫和路桩），Ncut 仅仅将其处理为边缘锯齿严重、形状难以辨认的色块（蓝色/棕色斑点），无法准确描绘物体的真实轮廓。这表明 Ncut 适合处理颜色差异明显的宏观区域，但不具备精细物体的捕捉能力。
+
+\vspace{0.5em}
+
+\noindent\textbf{2. Semantic (DeepLabV3+) 分析：} \\
+DeepLabV3+ 在处理\textbf{远景小目标 (Small Objects)} 时表现出明显劣势。结果 (b) 中充满了噪声，虽然大致定位了猫的方位（红色斑点），但未能形成清晰的物体轮廓。这是由于深层网络多次下采样后，小目标的特征信息严重衰减，导致上采样恢复时分辨率不足，且背景中复杂的草地纹理引发了大量的误分类噪声。
+
+\vspace{0.5em}
+
+\noindent\textbf{3. SAM (Segment Anything) 分析：} \\
+SAM 在此展示了其对\textbf{显著性物体 (Salient Object)} 的偏好。在 Zero-shot 模式下，模型优先分割了画面左侧几何特征最规则、边缘最清晰的\textbf{路桩}（图 (c) 紫色 Mask），且边缘极其平滑锐利。然而，对于画面中央较小且边缘不如路桩锐利的“猫”，SAM 在 Top-ranking 的结果中选择了忽略。这说明 SAM 是“强几何弱语义”的，对于非显著目标，往往需要人工提示 (Prompt) 才能实现精准捕获。
+
 
 \end{document}
