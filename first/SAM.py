@@ -1,42 +1,94 @@
 import torch
-import torchvision
-from torchvision import transforms
 import matplotlib.pyplot as plt
 from PIL import Image
 import os
+import sys
+import numpy as np
 
-os.makedirs("./SAMresults", exist_ok=True)
-# 选择预训练的DeepLabV3模型
-model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=True)
-model.eval()
+# 添加 SAM 路径
+sys.path.append('./RunSAM/segment-anything-main')
 
-# 图像预处理函数
-transform = transforms.Compose([
-    transforms.ToTensor(),  # 将图像转为Tensor
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # 用ImageNet的均值和标准差进行归一化
-])
+from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 
-# 使用GPU加速（如果有的话）
+# 创建正确的输出文件夹
+os.makedirs("./SAMresults-vit_h", exist_ok=True)
+
+# 检查 GPU 状态
+print(f"PyTorch version: {torch.__version__}")
+print(f"CUDA available: {torch.cuda.is_available()}")
+if torch.cuda.is_available():
+    print(f"CUDA version: {torch.version.cuda}")
+    print(f"GPU name: {torch.cuda.get_device_name(0)}")
+
+# 设置设备
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = model.to(device)
+print(f"Using device: {device}")
+
+# 加载SAM模型
+sam_checkpoint = "./RunSAM/segment-anything-main/checkpoints/sam_vit_h_4b8939.pth"
+model_type = "vit_h"
+
+# 加载SAM模型
+sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+sam.to(device=device)
+
+# 创建自动掩码生成器
+mask_generator = SamAutomaticMaskGenerator(sam)
 
 # 处理 ./dataset 目录下的所有图像
 image_dir = "./dataset"
-image_files = [f for f in os.listdir(image_dir) if f.endswith(".jpg")]
+image_files = [f for f in os.listdir(image_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
 
 for image_file in image_files:
+    print(f"Processing {image_file}...")
+    
     # 加载图像
     img_path = os.path.join(image_dir, image_file)
-    img = Image.open(img_path)
+    image = Image.open(img_path).convert("RGB")
+    image_array = np.array(image)
+    
+    # 使用SAM生成掩码
+    masks = mask_generator.generate(image_array)
+    
+    # 创建分割可视化
+    plt.figure(figsize=(15, 5))
+    
+    # 原图
+    plt.subplot(1, 3, 1)
+    plt.imshow(image_array)
+    plt.title("Original Image")
+    plt.axis('off')
+    
+    # 所有掩码
+    plt.subplot(1, 3, 2)
+    plt.imshow(image_array)
+    if len(masks) > 0:
+        sorted_masks = sorted(masks, key=(lambda x: x['area']), reverse=True)
+        for mask in sorted_masks:
+            m = mask['segmentation']
+            color = np.random.random(3)
+            plt.imshow(np.dstack([m, m, m]) * color.reshape(1, 1, 3), alpha=0.5)
+    plt.title(f"All Masks ({len(masks)} segments)")
+    plt.axis('off')
+    
+    # 最大的几个掩码
+    plt.subplot(1, 3, 3)
+    plt.imshow(image_array)
+    if len(masks) > 0:
+        sorted_masks = sorted(masks, key=(lambda x: x['area']), reverse=True)
+        for i, mask in enumerate(sorted_masks[:5]):  # 显示最大的5个
+            m = mask['segmentation']
+            color = plt.cm.tab10(i)[:3]
+            plt.imshow(np.dstack([m, m, m]) * np.array(color).reshape(1, 1, 3), alpha=0.6)
+    plt.title("Top 5 Largest Segments")
+    plt.axis('off')
+    
+    # 保存结果 - 使用 PNG 格式避免 JPEG 的问题
+    result_path = os.path.join("./SAMresults-vit_h", f"sam_{os.path.splitext(image_file)[0]}.png")
+    plt.tight_layout()
+    plt.savefig(result_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Saved result to {result_path}")
 
-    # 进行图像预处理
-    input_tensor = transform(img).unsqueeze(0).to(device)  # 增加一个batch维度并移动到设备
-
-    # 进行预测
-    with torch.no_grad():
-        output = model(input_tensor)["out"][0]  # 获取预测结果
-        output_predictions = output.argmax(0)  # 获取每个像素的类别预测
-
-    # 保存分割结果
-    result_path = os.path.join("./SAMresults", f"segmented_{image_file}")
-    plt.imsave(result_path, output_predictions.cpu().numpy())
+print("Processing completed!")
