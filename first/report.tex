@@ -6,7 +6,7 @@
 
 % --- 2. 功能宏包 ---
 % [修正1] 去掉了 [draft] 选项，否则图片只会显示为空白框
-\usepackage[draft]{graphicx}       
+\usepackage{graphicx}       
 \usepackage{float}          % 强制图片位置 [H]
 \usepackage{booktabs}       % 专业三线表
 \usepackage{subcaption}     % 子图支持
@@ -73,7 +73,7 @@
 \begin{titlepage}
     \centering
     \vspace*{3cm}
-    {\Huge \textbf{图像处理与计算机视觉研讨课：\\第一次作业} \par}
+    {\Huge \textbf{图像处理与计算机视觉研讨课：\\第二章作业} \par}
     \vspace{4cm}
     {\Large \textbf{姓名：} \underline{\makebox[5cm]{张宗桪}} \par}
     \vspace{1cm}
@@ -158,7 +158,7 @@ for file in os.listdir(profile_dir):
 \end{lstlisting}
 
 \newpage
-\section{实验结果展示 (Results)}
+\section{实验结果展示}
 本章节展示归一化图割、DeepLab v3+ 以及 SAM 在公开数据集和自采数据集上的分割效果。
 
 % --- 下面使用了显式路径 (Explicit Paths) 解决同名文件冲突 ---
@@ -356,19 +356,19 @@ for file in os.listdir(profile_dir):
 % --- 测试用例 5 ---
 \begin{figure}[H]
     \centering
-    \begin{subfigure}{0.3\textwidth}
+    \begin{subfigure}{0.15\textwidth}
         \centering
         \includegraphics[width=\linewidth]{dataset/5.jpg}
         \caption{原图 (Original)}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.3\textwidth}
+    \begin{subfigure}{0.15\textwidth}
         \centering
         \includegraphics[width=\linewidth]{Ncutresults/ncut_5.jpg}
         \caption{Normalized Cuts}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.3\textwidth}
+    \begin{subfigure}{0.15\textwidth}
         \centering
         \includegraphics[width=\linewidth]{cityscapes_result/5_semantic.png}
         \caption{DeepLab (Cityscapes)}
@@ -376,19 +376,19 @@ for file in os.listdir(profile_dir):
     
     \vspace{1em}
     
-    \begin{subfigure}{0.3\textwidth}
+    \begin{subfigure}{0.15\textwidth}
         \centering
         \includegraphics[width=\linewidth]{voc_results/5semantic.png}
         \caption{DeepLab (Pascal VOC)}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.3\textwidth}
+    \begin{subfigure}{0.15\textwidth}
         \centering
         \includegraphics[width=\linewidth]{SAMresults-vit_b/sam_5.png}
         \caption{SAM (ViT-B)}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.3\textwidth}
+    \begin{subfigure}{0.15\textwidth}
         \centering
         \includegraphics[width=\linewidth]{SAMresults-vit_h/sam5.png}
         \caption{SAM (ViT-H)}
@@ -541,9 +541,9 @@ SAM 是 Meta AI 提出的 Segment Anything Model (SAM) 作为图像分割的基�
 
 SAM 的网络架构由三个主要部分组成，设计上实现了高效的推理：
 \begin{itemize}
-    \item \textbf{图像编码器 (Image Encoder)：} 基于 Vision Transformer (ViT) 架构，负责将输入图像映射为特征嵌入（Image Embeddings）。这是模型中计算量最大的部分，但对每张图像仅需计算一次。
-    \item \textbf{提示编码器 (Prompt Encoder)：} 这是一个轻量级模块，用于将用户的交互提示（如点、框、掩码或文本）转换为提示向量。
-    \item \textbf{掩码解码器 (Mask Decoder)：} 该模块将图像特征与提示特征相结合，通过轻量级的计算实时生成最终的分割掩码。
+    \item \textbf{图像编码器：} 基于 Vision Transformer (ViT) 架构，负责将输入图像映射为特征嵌入。这是模型中计算量最大的部分，但对每张图像仅需计算一次。
+    \item \textbf{提示编码器：} 这是一个轻量级模块，用于将用户的交互提示（如点、框、掩码或文本）转换为提示向量。
+    \item \textbf{掩码解码器：} 该模块将图像特征与提示特征相结合，通过轻量级的计算实时生成最终的分割掩码。
 \end{itemize}
 
 \subsubsection{权重文件对比：ViT-B 与 ViT-H}
@@ -579,7 +579,7 @@ SAM 的不同模型版本主要区别在于图像编码器的大小。本研究�
         \caption{ViT-H 分割结果}
         \label{fig:cat_vith}
     \end{subfigure}
-    \caption{室内场景对比}
+    \caption{室内复杂光影背景对比}
     \label{fig:cat_comparison}
 \end{figure}
 
@@ -606,11 +606,11 @@ SAM 的不同模型版本主要区别在于图像编码器的大小。本研究�
         \caption{ViT-H 分割结果}
         \label{fig:people_vith}
     \end{subfigure}
-    \caption{人物实例分割对比}
+    \caption{草地背景下多人目标对比}
     \label{fig:people_comparison}
 \end{figure}
 
-对比图~\ref{fig:people_comparison} 可以看出，\textbf{ViT-B} 在语义理解上存在碎片化问题。它未能理解肢体与躯干的从属关系，错误地将左侧球员举起的手臂丢失，并将右侧球员分割为上下两部分。而 \textbf{ViT-H} 表现出极强的语义连通性，准确地将头部、躯干和四肢识别为同一个实例，证明了其具备更深层的语义理解能力，而非简单的颜色聚类。
+对比图~\ref{fig:people_comparison} 可以看出，\textbf{ViT-B} 在语义理解上存在碎片化问题。它未能理解肢体与躯干的从属关系，错误地将左侧球员举起的手臂丢失，并将右侧球员分割为上下两部分。而 \textbf{ViT-H} 表现出极强的语义连通性，准确地将头部、躯干和四肢识别为同一个实例，证明了其具备更深层的语义理解能力。
 
 \subsubsubsection{自然景观}
 
@@ -633,7 +633,7 @@ SAM 的不同模型版本主要区别在于图像编码器的大小。本研究�
         \caption{ViT-H 分割结果}
         \label{fig:park_vith}
     \end{subfigure}
-    \caption{自然景观分割对比}
+    \caption{户外路径下多小目标对比}
     \label{fig:park_comparison}
 \end{figure}
 
@@ -648,9 +648,7 @@ SAM 的不同模型版本主要区别在于图像编码器的大小。本研究�
 \end{enumerate}
 
 \subsection{DeepLabV3+ 模型}
-DeepLabV3+ 是由 Google 团队提出的经典语义分割网络。
-
-DeepLabV3+ 的核心架构包含两个关键特性：
+DeepLabV3+ 是由 Google 团队提出的经典语义分割网络，其核心架构包含两个关键特性：
 \begin{itemize}
     \item \textbf{空洞空间金字塔池化 ：} 通过不同采样率的空洞卷积捕捉多尺度的上下文信息，显著提升了模型对不同大小物体的识别能力。
     \item \textbf{编解码器结构 ：} 引入了简单的解码器模块。编码器提取丰富的高层语义特征，而解码器通过上采样并将低层细节特征与高层语义特征融合，有效地恢复了物体的空间分辨率和边界细节。
@@ -691,7 +689,7 @@ DeepLabV3+ 的核心架构包含两个关键特性：
         \caption{Cityscapes 权重结果}
         \label{fig:street_city}
     \end{subfigure}
-    \caption{街景分割对比}
+    \caption{城市道路驾驶场景对比}
     \label{fig:deeplab_street}
 \end{figure}
 
@@ -718,7 +716,7 @@ DeepLabV3+ 的核心架构包含两个关键特性：
         \caption{Cityscapes 权重结果}
         \label{fig:flower_city}
     \end{subfigure}
-    \caption{通用物体识别对比}
+    \caption{复杂静物（瓶中花）对比}
     \label{fig:deeplab_flower}
 \end{figure}
 
@@ -745,11 +743,11 @@ DeepLabV3+ 的核心架构包含两个关键特性：
         \caption{Cityscapes 权重结果}
         \label{fig:park_city}
     \end{subfigure}
-    \caption{环境背景分割}
+    \caption{户外景观对比}
     \label{fig:deeplab_park}
 \end{figure}
 
-在图~\ref{fig:deeplab_park} 中，\textbf{Pascal VOC 权重} (图a) 几乎输出全黑结果，因为它不包含“草地”、“路面”或“天空”等背景类别，只能忽略。而 \textbf{Cityscapes 权重} (图b) 凭借对室外场景的先验知识，清晰地分割出了草地（亮绿色）、远山与树木（深绿色），以及天空（蓝色）。
+在图~\ref{fig:deeplab_park} 中，\textbf{Pascal VOC 权重} (图a) 几乎输出全黑结果，主要是因为它不包含“草地”、“路面”或“天空”等背景类别，只能忽略。而 \textbf{Cityscapes 权重} (图b) 凭借对室外场景的先验知识，清晰地分割出了草地（亮绿色）、远山与树木（深绿色），以及天空（蓝色）。
 
 \subsubsection{结论}
 对于 DeepLabV3+ 而言，权重的选择应严格取决于应用场景：
@@ -766,7 +764,7 @@ DeepLabV3+ 的核心架构包含两个关键特性：
 \subsubsection{算法原理}
 N-Cut 算法将图像分割问题建模为图的划分问题。给定一幅图像，将其表示为加权无向图 $G=(V, E)$，其中 $V$ 代表图像中的像素集合，$E$ 代表连接像素的边。每条边的权重 $w_{ij}$ 反映了节点 $i$ 与节点 $j$ 之间的相似度（通常基于颜色相似性和空间距离计算）。
 
-传统的最小割（Min-Cut）算法旨在找到一种划分方式，使得被切断的边的权重之和最小。然而，Min-Cut 倾向于分割出孤立的节点。为了解决这一偏置，N-Cut 引入了归一化项，将分割成本与子图的总体积相关联。其目标函数定义为：
+传统的最小割算法旨在找到一种划分方式，使得被切断的边的权重之和最小。然而，Min-Cut 倾向于分割出孤立的节点。为了解决这一偏置，N-Cut 引入了归一化项，将分割成本与子图的总体积相关联。其目标函数定义为：
 
 \begin{equation}
     Ncut(A, B) = \frac{cut(A, B)}{assoc(A, V)} + \frac{cut(A, B)}{assoc(B, V)}
@@ -780,7 +778,7 @@ N-Cut 算法将图像分割问题建模为图的划分问题。给定一幅图�
 \end{itemize}
 
 \subsubsection{优化与求解}
-最小化 $Ncut(A, B)$ 是一个 NP-hard 问题。然而，Shi 和 Malik 证明了该问题可以转化为广义特征值问题（Generalized Eigenvalue Problem）进行近似求解。通过求解拉普拉斯矩阵的特征向量，并将像素映射到特征空间进行聚类，即可得到最优的分割结果。与现代深度学习方法不同，N-Cut 是一种非监督学习方法，不需要任何训练数据，但其计算复杂度随图像分辨率呈平方级增长，因此在处理高分辨率图像时效率较低。
+最小化 $Ncut(A, B)$ 是一个 NP-hard 问题。然而，Shi 和 Malik 证明了该问题可以转化为广义特征值问题进行近似求解。通过求解拉普拉斯矩阵的特征向量，并将像素映射到特征空间进行聚类，即可得到最优的分割结果。与现代深度学习方法不同，N-Cut 是一种非监督学习方法，不需要任何训练数据，但其计算复杂度随图像分辨率呈平方级增长，因此在处理高分辨率图像时效率较低。
 
 
 \subsection{实验结果分析}
@@ -788,7 +786,7 @@ N-Cut 算法将图像分割问题建模为图的划分问题。给定一幅图�
 % ======================================================================================
 % 第一组：瓶中花 (1.jpg)
 % ======================================================================================
-\subsubsection{场景一：复杂重叠物体 (瓶中花)}
+\subsubsection{场景一：复杂静物 (瓶中花)}
 
 \begin{figure}[H]
     \centering
@@ -816,25 +814,25 @@ N-Cut 算法将图像分割问题建模为图的划分问题。给定一幅图�
     \label{fig:res_1}
 \end{figure}
 
-\noindent\textbf{1. Ncut (归一化图割) 分析：} \\
-在该场景中，Ncut 表现出典型的\textbf{过分割 (Over-segmentation)} 现象。观察图 (a)，算法深受花瓣内部颜色渐变（深红至浅粉）的影响，将完整的花朵切碎成多个不规则的色块。同时，由于缺乏对物体形状的先验认知，紫色花瓶与上方绿叶的边界处理混乱，无法形成独立的物体区域。
+\noindent\textbf{1. 归一化图割 分析：} \\
+在该场景中，Ncut 表现出典型的过分割现象。观察图 (a)，算法深受花瓣内部颜色渐变（深红至浅粉）的影响，将完整的花朵切碎成多个不规则的色块。同时紫色花瓶与上方绿叶的边界处理混乱，无法形成独立的物体区域。
 
 \vspace{0.5em}
 
-\noindent\textbf{2. Semantic (DeepLabV3+) 分析：} \\
-DeepLabV3+ 成功提取了图像的\textbf{高层语义}，将画面中的花束和花瓶整体识别为 PASCAL VOC 类别中的 \texttt{pottedplant}（图 (b) 绿色区域）。然而，其局限性在于丢失了\textbf{实例细节}。由于骨干网的下采样操作，不同花朵之间的界限被模糊，整个花束呈现为一个粗糙的连通区域（Blob），无法区分个体，且边缘细节平滑严重。
+\noindent\textbf{2. DeepLabV3+ 分析：} \\
+DeepLabV3+ 成功提取了图像的高层语义，将画面中的花束和花瓶整体识别为 PASCAL VOC 类别中的 \texttt{pottedplant}（图 (b) 绿色区域）。然而，其局限性在于丢失了实例细节，不同花朵之间的界限被模糊，整个花束呈现为一个粗糙的连通区域，无法区分个体，且边缘细节平滑严重。
 
 \vspace{0.5em}
 
-\noindent\textbf{3. SAM (Segment Anything) 分析：} \\
-SAM 在此场景下展现了卓越的\textbf{实例分割 (Instance Segmentation)} 能力。观察结果 (c)，模型不仅成功将前景与背景分离，更在严重的物体遮挡下，精准地扣取了特定的紫色玫瑰花（紫色 Mask）和花瓶（棕色 Mask）。其边缘贴合度极高，连花瓣的锯齿状边缘都清晰可见，证明了 ViT 架构在处理复杂重叠边缘时的强大感知力。
+\noindent\textbf{3. SAM 分析：} \\
+SAM 在此场景下展现了卓越的实例分割能力。观察结果 (c)，模型不仅成功将前景与背景分离，更在严重的物体遮挡下，精准地扣取了特定的紫色玫瑰花（紫色 Mask）和花瓶（棕色 Mask）。其边缘贴合度极高，连花瓣的锯齿状边缘都清晰可见，证明了 ViT 架构在处理复杂重叠边缘时的强大感知力。
 
 \vspace{1cm}
 
 % ======================================================================================
 % 第二组：暗光下的猫 (3.jpg)
 % ======================================================================================
-\subsubsection{场景二：低照度与低对比度 (暗光猫)}
+\subsubsection{场景二：室内复杂光影背景}
 
 \begin{figure}[H]
     \centering
@@ -862,25 +860,25 @@ SAM 在此场景下展现了卓越的\textbf{实例分割 (Instance Segmentation
     \label{fig:res_3}
 \end{figure}
 
-\noindent\textbf{1. Ncut (归一化图割) 分析：} \\
-在低光照且对比度极低的条件下，Ncut \textbf{几近失效}。由于猫的毛色与背景木地板及阴影极其接近，基于颜色和梯度的聚类无法形成有效的边界。如图 (a) 所示，算法反而被背景中纹理更明显的椅子腿误导（右侧深蓝色块），将背景切碎，而未能提取出主体目标。
+\noindent\textbf{1. 归一化图割 分析：} \\
+在低光照且对比度极低的条件下，Ncut 几近失效。由于猫的毛色与背景木地板及阴影极其接近，基于颜色和梯度的聚类无法形成有效的边界。如图 (a) 所示，算法反而被背景中纹理更明显的椅子腿误导（右侧深蓝色块），将背景切碎，而未能提取出主体目标。
 
 \vspace{0.5em}
 
-\noindent\textbf{2. Semantic (DeepLabV3+) 分析：} \\
-DeepLabV3+ 展现了深度学习方法的\textbf{语义鲁棒性}。尽管视觉边界模糊，CNN 依然通过猫的耳朵、眼睛等特征，在语义层面成功识别出了 \texttt{Cat} 类（图 (b) 红色区域）。但是，其分割掩码的边缘非常圆滑，丢失了猫爪、耳尖等形态细节，表现为一种“定位准确但轮廓模糊”的结果。
+\noindent\textbf{2. DeepLabV3+ 分析：} \\
+DeepLabV3+ 展现了深度学习方法的语义鲁棒性。尽管视觉边界模糊，CNN 依然通过猫的耳朵、眼睛等特征，在语义层面成功识别出了 \texttt{Cat} 类（图 (b) 红色区域）。但是，其分割掩码的边缘非常圆滑，丢失了猫爪、耳尖等形态细节，表现为一种“定位准确但轮廓模糊”的结果。
 
 \vspace{0.5em}
 
-\noindent\textbf{3. SAM (Segment Anything) 分析：} \\
-SAM 的表现最为惊艳。得益于 Transformer 的\textbf{全局注意力机制 (Global Attention)}，模型利用整张图的上下文信息弥补了局部对比度的不足。结果 (c) 显示，SAM 生成的掩码轮廓完美贴合了猫的身体，保留了尖锐的耳尖和独立的尾巴线条。这证明了基础大模型（Foundation Model）在理解物体形态上已经超越了单纯的颜色或梯度依赖。
+\noindent\textbf{3. SAM 分析：} \\
+SAM 的表现最为好。得益于 Transformer 的全局注意力机制，模型利用整张图的上下文信息弥补了局部对比度的不足。结果 (c) 显示，SAM 生成的掩码轮廓完美贴合了猫的身体，保留了尖锐的耳尖和独立的尾巴线条。
 
 \vspace{1cm}
 
 % ======================================================================================
 % 第三组：小径与路桩 (7.jpg)
 % ======================================================================================
-\subsubsection{场景三：自然场景}
+\subsubsection{场景三：户外路径下多小目标}
 
 \begin{figure}[H]
     \centering
@@ -908,18 +906,47 @@ SAM 的表现最为惊艳。得益于 Transformer 的\textbf{全局注意力机�
     \label{fig:res_7}
 \end{figure}
 
-\noindent\textbf{1. Ncut (归一化图割) 分析：} \\
-在自然场景下，Ncut 表现出明显的\textbf{区域块状化}特征。如图 (a) 所示，算法大致将灰色的路面（灰色块）与两侧的草地（紫色块）进行了分离。然而，对于路面上的小物体（猫和路桩），Ncut 仅仅将其处理为边缘锯齿严重、形状难以辨认的色块（蓝色/棕色斑点），无法准确描绘物体的真实轮廓。这表明 Ncut 适合处理颜色差异明显的宏观区域，但不具备精细物体的捕捉能力。
+\noindent\textbf{1. 归一化图割 分析：} \\
+在自然场景下，Ncut 表现出明显的区域块状化特征。如图 (a) 所示，算法大致将灰色的路面（灰色块）与两侧的草地（紫色块）进行了分离。然而，对于路面上的小物体（猫和路桩），Ncut 仅仅将其处理为边缘锯齿严重、形状难以辨认的色块（蓝色/棕色斑点），无法准确描绘物体的真实轮廓。
 
 \vspace{0.5em}
 
-\noindent\textbf{2. Semantic (DeepLabV3+) 分析：} \\
-DeepLabV3+ 在处理\textbf{远景小目标 (Small Objects)} 时表现出明显劣势。结果 (b) 中充满了噪声，虽然大致定位了猫的方位（红色斑点），但未能形成清晰的物体轮廓。这是由于深层网络多次下采样后，小目标的特征信息严重衰减，导致上采样恢复时分辨率不足，且背景中复杂的草地纹理引发了大量的误分类噪声。
-
+\noindent\textbf{2. DeepLabV3+ 分析：} \\
+DeepLabV3+ 在处理远景小目标 时表现出明显劣势。结果 (b) 中充满了噪声，虽然大致定位了猫的方位（红色斑点），但未能形成清晰的物体轮廓。
 \vspace{0.5em}
 
-\noindent\textbf{3. SAM (Segment Anything) 分析：} \\
-SAM 在此展示了其对\textbf{显著性物体 (Salient Object)} 的偏好。在 Zero-shot 模式下，模型优先分割了画面左侧几何特征最规则、边缘最清晰的\textbf{路桩}（图 (c) 紫色 Mask），且边缘极其平滑锐利。然而，对于画面中央较小且边缘不如路桩锐利的“猫”，SAM 在 Top-ranking 的结果中选择了忽略。这说明 SAM 是“强几何弱语义”的，对于非显著目标，往往需要人工提示 (Prompt) 才能实现精准捕获。
+\noindent\textbf{3. SAM 分析：} \\
+SAM 在此展示了其对显著性物体的偏好。在 Zero-shot 模式下，模型优先分割了画面左侧几何特征最规则、边缘最清晰的路桩（图 (c) 紫色 Mask），且边缘极其平滑锐利。然而，对于画面中央较小且边缘不如路桩锐利的“猫”，SAM 在结果中选择了忽略。这说明 SAM 是“强几何弱语义”的，即不懂“语义标签”。
 
 
+
+\section{总结}
+
+通过本实验的对比分析，我们将权重文件的选用及各模型的性能特征总结如下：
+
+\subsection{权重文件的选用}
+
+\begin{itemize}
+    \item \textbf{SAM 权重 (ViT-B vs. ViT-H)：} \\
+    ViT-B (Base) 参数量小，推理速度快，适合资源受限场景；而 ViT-H (Huge) 拥有最强的特征提取能力，在处理复杂背景干扰、模糊边界以及细小物体时，能提供显著优于 ViT-B 的分割细节。
+    
+    \item \textbf{DeepLab v3+ 权重 (VOC vs. Cityscapes)：代表了“应用领域”的界限。} \\
+    模型的识别能力严格受限于训练数据集。Pascal VOC 权重包含猫、车等20类通用物体，适用于物体级的实例分割；Cityscapes 权重包含道路、天空等19类场景，专精于自动驾驶环境感知。跨领域使用会导致严重的识别错误。
+\end{itemize}
+
+\subsection{模型特点对比}
+
+\begin{itemize}
+    \item \textbf{Normalized Cuts (归一化图割)：} \\
+    \textbf{特点：} 无需训练的无监督方法。 \\
+    \textbf{局限：} 高度依赖像素间的颜色和空间距离相似性，在低对比度或纹理复杂场景下容易产生过分割或背景混淆，计算效率较低。
+    
+    \item \textbf{DeepLab v3+：} \\
+    \textbf{特点：} 语义理解能力强。 \\
+    \textbf{局限：} 能够准确识别物体的类别（“是什么”），但受限于下采样操作，分割出的掩码边缘通常较为圆滑模糊，丢失了物体的几何细节。
+    
+    \item \textbf{SAM (Segment Anything Model)：} \\
+    \textbf{特点：} 几何感知力最强，泛化性极佳。 \\
+    \textbf{优势：} 具备强大的零样本迁移能力，即使在未见过的场景下，也能生成边缘极其锐利、贴合度极高的分割掩码。它弥补了传统方法不懂语义、早期深度学习方法边缘模糊的缺陷。
+\end{itemize}
 \end{document}
