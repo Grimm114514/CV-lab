@@ -57,6 +57,8 @@ class NetVLAD(nn.Module):
 # 加载预训练的VGG16模型用于特征提取
 def extract_vgg16_features(image_path):
     image = cv2.imread(image_path)
+    if image is None:
+        raise ValueError(f"无法加载图像: {image_path}")
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     transform = transforms.Compose([
@@ -95,10 +97,17 @@ def image_retrieval(query_image_path, dataset_folder, netvlad, top_n=5):
     similarities = []
     
     for filename in os.listdir(dataset_folder):
+        # 过滤非图像文件
+        if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
+            continue
         image_path = os.path.join(dataset_folder, filename)
-        vlad_descriptor = extract_netvlad_descriptor(image_path, netvlad)
-        similarity = cosine_similarity(query_descriptor, vlad_descriptor)[0][0]
-        similarities.append((filename, similarity))
+        try:
+            vlad_descriptor = extract_netvlad_descriptor(image_path, netvlad)
+            similarity = cosine_similarity(query_descriptor, vlad_descriptor)[0][0]
+            similarities.append((filename, similarity))
+        except (ValueError, Exception) as e:
+            print(f"跳过图像 {filename}: {e}")
+            continue
     
     similarities.sort(key=lambda x: x[1], reverse=True)
     return similarities[:top_n]

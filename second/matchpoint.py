@@ -1,4 +1,3 @@
-
 import sys
 import os
 sys.path.append('./SuperPoint')
@@ -61,24 +60,36 @@ class SuperPointDetector(object):
 def match_superpoint(query_image_path, retrieved_image_path, ratio_thresh=0.75):
     """使用SuperPoint进行特征匹配（Glue类方法 - Ratio Test）"""
     spd = SuperPointDetector()
-    
+
+    # 检查查询图像路径
+    if not os.path.exists(query_image_path):
+        raise FileNotFoundError(f"查询图像路径不存在: {query_image_path}")
+    if not os.path.exists(retrieved_image_path):
+        raise FileNotFoundError(f"检索图像路径不存在: {retrieved_image_path}")
+
     img1 = cv2.imread(query_image_path)
     img2 = cv2.imread(retrieved_image_path)
-    
+
+    # 检查图像是否成功加载
+    if img1 is None:
+        raise ValueError(f"无法加载查询图像: {query_image_path}")
+    if img2 is None:
+        raise ValueError(f"无法加载检索图像: {retrieved_image_path}")
+
     ret1 = spd(img1)
     ret2 = spd(img2)
-    
+
     keypoints1 = ret1['keypoints']
     keypoints2 = ret2['keypoints']
     D1 = ret1['descriptors'] * 1.0
     D2 = ret2['descriptors'] * 1.0
-    
+
     keypoints1_cv = [cv2.KeyPoint(x=float(pt[0]), y=float(pt[1]), size=20) for pt in keypoints1]
     keypoints2_cv = [cv2.KeyPoint(x=float(pt[0]), y=float(pt[1]), size=20) for pt in keypoints2]
-    
+
     bf = cv2.BFMatcher(cv2.NORM_L2)
     knn_matches = bf.knnMatch(D1, D2, k=2)
-    
+
     # Glue类方法：比例测试 (Ratio Test)
     good_matches = []
     for match_pair in knn_matches:
@@ -86,25 +97,37 @@ def match_superpoint(query_image_path, retrieved_image_path, ratio_thresh=0.75):
             m, n = match_pair
             if m.distance < ratio_thresh * n.distance:
                 good_matches.append(m)
-    
+
     return img1, img2, keypoints1_cv, keypoints2_cv, good_matches
 
 
 def match_sift(query_image_path, retrieved_image_path, ratio_thresh=0.75):
     """使用SIFT进行特征匹配（Glue类方法 - Ratio Test）"""
+    # 检查查询图像路径
+    if not os.path.exists(query_image_path):
+        raise FileNotFoundError(f"查询图像路径不存在: {query_image_path}")
+    if not os.path.exists(retrieved_image_path):
+        raise FileNotFoundError(f"检索图像路径不存在: {retrieved_image_path}")
+
     img1 = cv2.imread(query_image_path)
     img2 = cv2.imread(retrieved_image_path)
-    
+
+    # 检查图像是否成功加载
+    if img1 is None:
+        raise ValueError(f"无法加载查询图像: {query_image_path}")
+    if img2 is None:
+        raise ValueError(f"无法加载检索图像: {retrieved_image_path}")
+
     gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
     gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-    
+
     sift = cv2.SIFT_create()
     keypoints1, descriptors1 = sift.detectAndCompute(gray1, None)
     keypoints2, descriptors2 = sift.detectAndCompute(gray2, None)
-    
+
     bf = cv2.BFMatcher(cv2.NORM_L2)
     knn_matches = bf.knnMatch(descriptors1, descriptors2, k=2)
-    
+
     # Glue类方法：比例测试 (Ratio Test)
     good_matches = []
     for match_pair in knn_matches:
@@ -112,7 +135,7 @@ def match_sift(query_image_path, retrieved_image_path, ratio_thresh=0.75):
             m, n = match_pair
             if m.distance < ratio_thresh * n.distance:
                 good_matches.append(m)
-    
+
     return img1, img2, keypoints1, keypoints2, good_matches
 
 
@@ -159,8 +182,8 @@ def visualize_matches(query_image_path, retrieved_images, dataset_folder, use_su
 def main():
     """主函数"""
     # 配置路径
-    dataset_folder = './data'
-    query_folder = './data'
+    dataset_folder = './data/retri2/sources'
+    query_folder = './data/retri2/mapping'
     checkpoint_path = 'netvlad_pretrained.pth.tar'
     
     if not os.path.exists(dataset_folder):
